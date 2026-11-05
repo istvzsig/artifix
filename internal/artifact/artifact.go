@@ -62,3 +62,32 @@ func NewArtifact(
 
 	return artifact, nil
 }
+
+func (a *Artifact) MarkAvailable() error {
+	if a.status != StatusPending {
+		return fmt.Errorf(
+			"%w: cannot mark artifact available with status %s",
+			ErrInvalidStatusTransition,
+			a.status,
+		)
+	}
+
+	a.status = StatusAvailable
+
+	return nil
+}
+
+func (a *Artifact) Delete() error {
+	if a.status != StatusAvailable {
+		return fmt.Errorf(
+			"%w: cannot delete artifact with status %s",
+			ErrInvalidStatusTransition,
+			a.status,
+		)
+	}
+
+	a.status = StatusDeleted
+	a.deletedAt = time.Now().UTC()
+
+	return nil
+}

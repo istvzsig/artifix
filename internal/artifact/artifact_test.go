@@ -3,6 +3,7 @@ package artifact
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -92,5 +93,84 @@ func TestNewArtifact_ValidationOrder(t *testing.T) {
 	_, err := NewArtifact(coords, Digest{}, -1024, "Application/Zip")
 	if !errors.Is(err, ErrCoordinatesCannotBeZero) {
 		t.Fatalf("expected ErrCoordinatesCannotBeZero, got %v", err)
+	}
+}
+
+func TestArtifact_MarkAvailable(t *testing.T) {
+	coords, err := NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := NewArtifact(coords, Digest{}, 1024, "Application/Zip")
+	if err != nil {
+		t.Fatalf("NewArtifact() error = %v", err)
+	}
+
+	err = got.MarkAvailable()
+	if err != nil {
+		t.Fatalf("MarkAvailable() error = %v", err)
+	}
+
+	if got.status != StatusAvailable {
+		t.Fatalf("expected StatusAvailable, got %v", got.status)
+	}
+}
+
+func TestArtifact_MarkAvailable_InvalidTransition(t *testing.T) {
+	coords, err := NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := NewArtifact(coords, Digest{}, 1024, "Application/Zip")
+	if err != nil {
+		t.Fatalf("NewArtifact() error = %v", err)
+	}
+
+	err = got.MarkAvailable()
+	if err != nil {
+		t.Fatalf("first MarkAvailable() error = %v", err)
+	}
+
+	err = got.MarkAvailable()
+	if !errors.Is(err, ErrInvalidStatusTransition) {
+		t.Fatalf("second MarkAvailable() error = %v", err)
+	}
+
+	if got.status != StatusAvailable {
+		t.Fatalf("expected status to remain AVAILABLE, got %v", got.status)
+	}
+}
+
+func TestArtifact_Delete(t *testing.T) {
+	coords, err := NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := NewArtifact(coords, Digest{}, 1024, "Application/Zip")
+	if err != nil {
+		t.Fatalf("NewArtifact() error = %v", err)
+	}
+
+	if err := got.MarkAvailable(); err != nil {
+		t.Fatalf("MarkAvailable() error = %v", err)
+	}
+
+	if err := got.Delete(); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+
+	if got.status != StatusDeleted {
+		t.Fatalf("expected StatusDeleted, got %v", got.status)
+	}
+
+	if got.deletedAt.IsZero() {
+		t.Fatal("expected deletedAt to be set")
+	}
+
+	if got.deletedAt.Location() != time.UTC {
+		t.Fatalf("expected UTC deletion timestamp, got %v", got.deletedAt.Location())
 	}
 }
