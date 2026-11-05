@@ -63,6 +63,18 @@ func NewArtifact(
 	return artifact, nil
 }
 
+func (a Artifact) Size() int64 {
+	return a.size
+}
+
+func (a Artifact) Digest() Digest {
+	return a.digest
+}
+
+func (a Artifact) Status() Status {
+	return a.status
+}
+
 func (a *Artifact) MarkAvailable() error {
 	if a.status != StatusPending {
 		return fmt.Errorf(
