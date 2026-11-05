@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-go build -o ./bin/artifix .
+go build -o ./bin/artifix ./cmd/artifix
 
 exec ./bin/artifix
