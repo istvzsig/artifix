@@ -33,6 +33,12 @@ func NewCoordinates(namespace, name, version string) (Coordinates, error) {
 	}, nil
 }
 
+func (c Coordinates) IsValid() bool {
+	return c.namespace != "" &&
+		c.name != "" &&
+		c.version != ""
+}
+
 func validateIdentifier(input string) error {
 	if input == "" {
 		return errors.New("identifier cannot be empty")
