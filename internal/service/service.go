@@ -7,20 +7,18 @@ import (
 
 	"github.com/istvzsig/artifix/internal/artifact"
 	"github.com/istvzsig/artifix/internal/repository"
+	"github.com/istvzsig/artifix/internal/storage"
 )
-
-type BinaryStorage interface {
-	Stage(ctx context.Context, content io.Reader) (artifact.Digest, int64, error)
-	Publish(ctx context.Context, digest artifact.Digest) error
-	DiscardStage(ctx context.Context, digest artifact.Digest) error
-}
 
 type Service struct {
 	repository repository.ArtifactRepository
-	storage    BinaryStorage
+	storage    storage.BinaryStorage
 }
 
-func NewService(repository repository.ArtifactRepository, storage BinaryStorage) (*Service, error) {
+func NewService(
+	repository repository.ArtifactRepository,
+	storage storage.BinaryStorage,
+) (*Service, error) {
 	if repository == nil {
 		return nil, ErrRepositoryRequired
 	}

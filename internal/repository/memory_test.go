@@ -344,3 +344,153 @@ func TestMemoryRepository_Update_PreservesImmutableFields(t *testing.T) {
 		t.Errorf("expected status %q, got %q", artifact.StatusAvailable, got.Status())
 	}
 }
+
+func TestMemoryRepository_List_Success(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	// Artifact 1
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		100,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(context.Background(), a); err != nil {
+		t.Fatal(err)
+	}
+
+	// Artifact 2
+	coords2, err := artifact.NewCoordinates("acme", "api", "2.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a2, err := artifact.NewArtifact(
+		coords2,
+		artifact.Digest{},
+		512,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(context.Background(), a2); err != nil {
+		t.Fatal(err)
+	}
+
+	// Artifact 3
+	coords3, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a3, err := artifact.NewArtifact(
+		coords3,
+		artifact.Digest{},
+		1024,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(context.Background(), a3); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := repository.List(context.Background(), "acme", "api")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 artifacts, got %d", len(result))
+	}
+
+	for _, a := range result {
+		coords := a.Coordinates()
+
+		if coords.Namespace() != "acme" {
+			t.Errorf("expected namespace acme, got %s", coords.Namespace())
+		}
+
+		if coords.Name() != "api" {
+			t.Errorf("expected name api, got %s", coords.Name())
+		}
+	}
+}
+
+func TestMemoryRepository_List_Empty(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	result, err := repository.List(context.Background(), "acme", "api")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result == nil {
+		t.Fatal("expected non-nil empty slice")
+	}
+
+	if len(result) != 0 {
+		t.Fatalf("expected empty artifacts, got %d", len(result))
+	}
+}
+
+func TestMemoryRepository_List_DifferentPackage(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		100,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(context.Background(), a); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := repository.List(context.Background(), "acme", "api")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(result) != 0 {
+		t.Fatalf("expected zero result, got %d", len(result))
+	}
+}
+
+func TestMemoryRepository_List_CanceledContext(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	result, err := repository.List(ctx, "acme", "api")
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected context.Canceled, got %v", err)
+	}
+
+	if result != nil {
+		t.Fatalf("expected nil result, got %v", result)
+	}
+}

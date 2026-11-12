@@ -57,6 +57,14 @@ func (f *fakeArtifactRepository) Update(
 	return nil
 }
 
+func (f *fakeArtifactRepository) List(
+	ctx context.Context,
+	namespace string,
+	name string,
+) ([]artifact.Artifact, error) {
+	return []artifact.Artifact{}, nil
+}
+
 type fakeBinaryStorage struct {
 	published       bool
 	publishErr      error

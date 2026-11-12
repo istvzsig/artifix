@@ -83,3 +83,27 @@ func (r *MemoryRepository) Update(
 
 	return nil
 }
+
+func (r *MemoryRepository) List(
+	ctx context.Context,
+	namespace string,
+	name string,
+) ([]artifact.Artifact, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
+	result := []artifact.Artifact{}
+
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, a := range r.artifacts {
+		if a.Coordinates().Namespace() == namespace &&
+			a.Coordinates().Name() == name {
+			result = append(result, a)
+		}
+	}
+
+	return result, nil
+}
