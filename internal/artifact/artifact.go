@@ -63,16 +63,36 @@ func NewArtifact(
 	return artifact, nil
 }
 
-func (a Artifact) Size() int64 {
-	return a.size
+func (a Artifact) ID() uuid.UUID {
+	return a.id
+}
+
+func (a Artifact) Coordinates() Coordinates {
+	return a.coords
 }
 
 func (a Artifact) Digest() Digest {
 	return a.digest
 }
 
+func (a Artifact) Size() int64 {
+	return a.size
+}
+
+func (a Artifact) MediaType() string {
+	return a.mediaType
+}
+
 func (a Artifact) Status() Status {
 	return a.status
+}
+
+func (a Artifact) CreatedAt() time.Time {
+	return a.createdAt
+}
+
+func (a Artifact) DeletedAt() time.Time {
+	return a.deletedAt
 }
 
 func (a *Artifact) MarkAvailable() error {

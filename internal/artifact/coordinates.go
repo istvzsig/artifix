@@ -33,6 +33,18 @@ func NewCoordinates(namespace, name, version string) (Coordinates, error) {
 	}, nil
 }
 
+func (c Coordinates) Namespace() string {
+	return c.namespace
+}
+
+func (c Coordinates) Name() string {
+	return c.name
+}
+
+func (c Coordinates) Version() string {
+	return c.version
+}
+
 func (c Coordinates) IsValid() bool {
 	return c.namespace != "" &&
 		c.name != "" &&
