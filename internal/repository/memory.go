@@ -107,3 +107,28 @@ func (r *MemoryRepository) List(
 
 	return result, nil
 }
+
+func (r *MemoryRepository) Delete(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	a, ok := r.artifacts[coords]
+	if !ok {
+		return ErrArtifactNotFound
+	}
+
+	if err := a.Delete(); err != nil {
+		return err
+	}
+
+	r.artifacts[coords] = a
+
+	return nil
+}

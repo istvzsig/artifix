@@ -21,7 +21,7 @@ func TestMemoryRepository_Create_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
@@ -39,7 +39,7 @@ func TestMemoryRepository_Create_DuplicateCoordinates(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a1); err != nil {
+	if err := repository.Create(t.Context(), a1); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -51,9 +51,9 @@ func TestMemoryRepository_Create_DuplicateCoordinates(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	err = repository.Create(context.Background(), a2)
+	err = repository.Create(t.Context(), a2)
 	if !errors.Is(err, ErrArtifactAlreadyExists) {
-		t.Fatalf("expected ErrArtifactAlreadyExists, got %v", err)
+		t.Fatalf("expected %v, got %v", ErrArtifactAlreadyExists, err)
 	}
 }
 
@@ -75,7 +75,7 @@ func TestMemoryRepository_Create_CanceledContext(t *testing.T) {
 
 	err = repository.Create(ctx, a)
 	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("expected context canceled, got %v", err)
+		t.Fatalf("expected %v, got %v", context.Canceled, err)
 	}
 }
 
@@ -92,11 +92,11 @@ func TestMemoryRepository_Get_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	got, err := repository.Get(context.Background(), coords)
+	got, err := repository.Get(t.Context(), coords)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -126,9 +126,9 @@ func TestMemoryRepository_Get_NotFound(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = repository.Get(context.Background(), coords)
+	_, err = repository.Get(t.Context(), coords)
 	if !errors.Is(err, ErrArtifactNotFound) {
-		t.Fatalf("expected ErrArtifactNotFound, got %v", err)
+		t.Fatalf("expected %v, got %v", ErrArtifactNotFound, err)
 	}
 }
 
@@ -162,7 +162,7 @@ func TestMemoryRepository_Update_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -170,14 +170,14 @@ func TestMemoryRepository_Update_Success(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 	if errors.Is(err, artifact.ErrInvalidStatusTransition) {
-		t.Fatalf("expected no artifact.ErrInvalidStatusTransition error")
+		t.Fatalf("expected no %v error", artifact.ErrInvalidStatusTransition)
 	}
 
-	if err := repository.Update(context.Background(), a); err != nil {
+	if err := repository.Update(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	got, err := repository.Get(context.Background(), coords)
+	got, err := repository.Get(t.Context(), coords)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -203,9 +203,9 @@ func TestMemoryRepository_Update_NotFound(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	err = repository.Update(context.Background(), a)
+	err = repository.Update(t.Context(), a)
 	if !errors.Is(err, ErrArtifactNotFound) {
-		t.Fatalf("expected ErrArtifactNotFound, got %v", err)
+		t.Fatalf("expected %v, got %v", ErrArtifactNotFound, err)
 	}
 }
 
@@ -222,7 +222,7 @@ func TestMemoryRepository_Update_IDMismatch(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a1); err != nil {
+	if err := repository.Create(t.Context(), a1); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -231,12 +231,12 @@ func TestMemoryRepository_Update_IDMismatch(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	err = repository.Update(context.Background(), a2)
+	err = repository.Update(t.Context(), a2)
 	if !errors.Is(err, ErrArtifactIDMismatch) {
-		t.Fatalf("expected ErrArtifactIDMismatch, got %v", err)
+		t.Fatalf("expected %v, got %v", ErrArtifactIDMismatch, err)
 	}
 
-	got, err := repository.Get(context.Background(), coords)
+	got, err := repository.Get(t.Context(), coords)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -259,7 +259,7 @@ func TestMemoryRepository_Update_CanceledContext(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -268,10 +268,10 @@ func TestMemoryRepository_Update_CanceledContext(t *testing.T) {
 
 	err = repository.Update(ctx, a)
 	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("expected context.Canceled, got %v", err)
+		t.Fatalf("expected %v, got %v", context.Canceled, err)
 	}
 
-	got, err := repository.Get(context.Background(), coords)
+	got, err := repository.Get(t.Context(), coords)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -303,7 +303,7 @@ func TestMemoryRepository_Update_PreservesImmutableFields(t *testing.T) {
 	originalMediaType := a.MediaType()
 	originalCoords := a.Coordinates()
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
@@ -311,11 +311,11 @@ func TestMemoryRepository_Update_PreservesImmutableFields(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := repository.Update(context.Background(), a); err != nil {
+	if err := repository.Update(t.Context(), a); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	got, err := repository.Get(context.Background(), coords)
+	got, err := repository.Get(t.Context(), coords)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -364,7 +364,7 @@ func TestMemoryRepository_List_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatal(err)
 	}
 
@@ -384,7 +384,7 @@ func TestMemoryRepository_List_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.Create(context.Background(), a2); err != nil {
+	if err := repository.Create(t.Context(), a2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -404,11 +404,11 @@ func TestMemoryRepository_List_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.Create(context.Background(), a3); err != nil {
+	if err := repository.Create(t.Context(), a3); err != nil {
 		t.Fatal(err)
 	}
 
-	result, err := repository.List(context.Background(), "acme", "api")
+	result, err := repository.List(t.Context(), "acme", "api")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -433,7 +433,7 @@ func TestMemoryRepository_List_Success(t *testing.T) {
 func TestMemoryRepository_List_Empty(t *testing.T) {
 	repository := NewMemoryRepository()
 
-	result, err := repository.List(context.Background(), "acme", "api")
+	result, err := repository.List(t.Context(), "acme", "api")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -465,11 +465,11 @@ func TestMemoryRepository_List_DifferentPackage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := repository.Create(context.Background(), a); err != nil {
+	if err := repository.Create(t.Context(), a); err != nil {
 		t.Fatal(err)
 	}
 
-	result, err := repository.List(context.Background(), "acme", "api")
+	result, err := repository.List(t.Context(), "acme", "api")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -487,10 +487,222 @@ func TestMemoryRepository_List_CanceledContext(t *testing.T) {
 
 	result, err := repository.List(ctx, "acme", "api")
 	if !errors.Is(err, context.Canceled) {
-		t.Fatalf("expected context.Canceled, got %v", err)
+		t.Fatalf("expected %v, got %v", context.Canceled, err)
 	}
 
 	if result != nil {
 		t.Fatalf("expected nil result, got %v", result)
+	}
+}
+
+func TestMemoryRepository_Delete_Success(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		100,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(t.Context(), a); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := a.MarkAvailable(); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := repository.Update(t.Context(), a); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := repository.Delete(t.Context(), coords); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	got, err := repository.Get(t.Context(), coords)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if got.Status() != artifact.StatusDeleted {
+		t.Fatalf("expected status %q, got %q",
+			artifact.StatusDeleted,
+			got.Status(),
+		)
+	}
+
+	if got.DeletedAt().IsZero() {
+		t.Fatal("expected non-zero deletion timestamp")
+	}
+}
+
+func TestMemoryRepository_Delete_NotFound(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = repository.Delete(t.Context(), coords)
+	if !errors.Is(err, ErrArtifactNotFound) {
+		t.Fatalf("expected error %v, got %v", ErrArtifactNotFound, err)
+	}
+}
+
+func TestMemoryRepository_Delete_CanceledContext(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+
+	err = repository.Delete(ctx, coords)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected error %v, got %v", context.Canceled, err)
+	}
+}
+
+func TestMemoryRepository_Delete_AlreadyDeleted(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		100,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(t.Context(), a); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := a.MarkAvailable(); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := repository.Update(t.Context(), a); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if err := repository.Delete(t.Context(), coords); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	got, err := repository.Get(t.Context(), coords)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if got.Status() != artifact.StatusDeleted {
+		t.Fatalf("expected status %q, got %q",
+			artifact.StatusDeleted,
+			got.Status(),
+		)
+	}
+
+	if got.DeletedAt().IsZero() {
+		t.Fatal("expected non-zero deletion timestamp")
+	}
+
+	err = repository.Delete(t.Context(), coords)
+	if !errors.Is(err, artifact.ErrInvalidStatusTransition) {
+		t.Fatalf(
+			"expected error %v, got %v",
+			artifact.ErrInvalidStatusTransition,
+			err,
+		)
+	}
+}
+
+func TestMemoryRepository_Delete_PreservesArtifactMetadata(t *testing.T) {
+	repository := NewMemoryRepository()
+
+	coords, err := artifact.NewCoordinates("acme", "worker", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	digest := artifact.Digest{1, 2, 3, 4}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		digest,
+		1024,
+		"application/octet-stream",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.MarkAvailable(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Create(t.Context(), a); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.Delete(t.Context(), coords); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := repository.Get(t.Context(), coords)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got.ID() != a.ID() {
+		t.Errorf("expected ID %v, got %v", a.ID(), got.ID())
+	}
+
+	if got.Coordinates() != a.Coordinates() {
+		t.Errorf("expected coordinates %v, got %v", a.Coordinates(), got.Coordinates())
+	}
+
+	if got.Digest() != a.Digest() {
+		t.Errorf("expected digest %v, got %v", a.Digest(), got.Digest())
+	}
+
+	if got.Size() != a.Size() {
+		t.Errorf("expected size %d, got %d", a.Size(), got.Size())
+	}
+
+	if got.MediaType() != a.MediaType() {
+		t.Errorf("expected media type %q, got %q", a.MediaType(), got.MediaType())
+	}
+
+	if !got.CreatedAt().Equal(a.CreatedAt()) {
+		t.Errorf("expected creation time %v, got %v", a.CreatedAt(), got.CreatedAt())
+	}
+
+	if got.Status() != artifact.StatusDeleted {
+		t.Errorf("expected status %q, got %q", artifact.StatusDeleted, got.Status())
+	}
+
+	if got.DeletedAt().IsZero() {
+		t.Error("expected non-zero deletion timestamp")
 	}
 }

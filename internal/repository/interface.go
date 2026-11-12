@@ -11,4 +11,5 @@ type ArtifactRepository interface {
 	Get(ctx context.Context, coords artifact.Coordinates) (artifact.Artifact, error)
 	Update(ctx context.Context, a artifact.Artifact) error
 	List(ctx context.Context, namespace string, name string) ([]artifact.Artifact, error)
+	Delete(ctx context.Context, coords artifact.Coordinates) error
 }

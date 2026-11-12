@@ -65,6 +65,13 @@ func (f *fakeArtifactRepository) List(
 	return []artifact.Artifact{}, nil
 }
 
+func (f *fakeArtifactRepository) Delete(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) error {
+	return nil
+}
+
 type fakeBinaryStorage struct {
 	published       bool
 	publishErr      error
