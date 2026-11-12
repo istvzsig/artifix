@@ -17,6 +17,8 @@ type fakeArtifactRepository struct {
 	createErr error
 	updated   bool
 	updateErr error
+	deleted   bool
+	deleteErr error
 	calls     *[]string
 }
 
@@ -69,6 +71,13 @@ func (f *fakeArtifactRepository) Delete(
 	ctx context.Context,
 	coords artifact.Coordinates,
 ) error {
+	f.deleted = true
+	recordCall(f.calls, "Delete")
+
+	if f.deleteErr != nil {
+		return f.deleteErr
+	}
+
 	return nil
 }
 
@@ -582,5 +591,62 @@ func TestService_Operations_UpdateFailureOrdering(t *testing.T) {
 
 	if !reflect.DeepEqual(calls, wantCalls) {
 		t.Fatalf("calls %v ordering does not match with %v", calls, wantCalls)
+	}
+}
+func TestService_Delete_Success(t *testing.T) {
+	calls := []string{}
+
+	repository := &fakeArtifactRepository{
+		calls: &calls,
+	}
+	storage := &fakeBinaryStorage{}
+
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = service.Delete(t.Context(), coords)
+	if err != nil {
+		t.Fatalf("expected no delete error, got %v", err)
+	}
+
+	if !repository.deleted {
+		t.Error("expected repository.Delete to be called")
+	}
+
+	if storage.published {
+		t.Error("expected storage.Publish not to be called")
+	}
+
+	if !reflect.DeepEqual(calls, []string{"Delete"}) {
+		t.Fatalf("expected calls [Delete], got %v", calls)
+	}
+}
+
+func TestService_Delete_RepositoryFailure(t *testing.T) {
+	repository := &fakeArtifactRepository{
+		deleteErr: ErrDatabaseUnavailable,
+	}
+	storage := &fakeBinaryStorage{}
+
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = service.Delete(t.Context(), coords)
+	if !errors.Is(err, ErrDatabaseUnavailable) {
+		t.Fatalf("expected error %v, got %v", ErrDatabaseUnavailable, err)
 	}
 }

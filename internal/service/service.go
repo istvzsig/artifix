@@ -77,6 +77,13 @@ func (s *Service) Upload(
 	return a, nil
 }
 
+func (s *Service) Delete(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) error {
+	return s.repository.Delete(ctx, coords)
+}
+
 const cleanupTimeout = 5 * time.Second
 
 func (s *Service) cleanupStagedContent(
