@@ -8,18 +8,23 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/istvzsig/artifix/internal/artifact"
 	"github.com/istvzsig/artifix/internal/repository"
 )
 
 type fakeArtifactRepository struct {
-	created   bool
-	createErr error
-	updated   bool
-	updateErr error
-	deleted   bool
-	deleteErr error
-	calls     *[]string
+	created       bool
+	createErr     error
+	updated       bool
+	updateErr     error
+	deleted       bool
+	deleteErr     error
+	getArtifact   artifact.Artifact
+	getErr        error
+	listArtifacts []artifact.Artifact
+	listErr       error
+	calls         *[]string
 }
 
 var _ repository.ArtifactRepository = (*fakeArtifactRepository)(nil)
@@ -36,13 +41,6 @@ func (f *fakeArtifactRepository) Create(
 	}
 
 	return nil
-}
-
-func (f *fakeArtifactRepository) Get(
-	ctx context.Context,
-	coords artifact.Coordinates,
-) (artifact.Artifact, error) {
-	return artifact.Artifact{}, nil
 }
 
 func (f *fakeArtifactRepository) Update(
@@ -64,7 +62,14 @@ func (f *fakeArtifactRepository) List(
 	namespace string,
 	name string,
 ) ([]artifact.Artifact, error) {
-	return []artifact.Artifact{}, nil
+	return f.listArtifacts, f.listErr
+}
+
+func (f *fakeArtifactRepository) Get(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) (artifact.Artifact, error) {
+	return f.getArtifact, f.getErr
 }
 
 func (f *fakeArtifactRepository) Delete(
@@ -648,5 +653,249 @@ func TestService_Delete_RepositoryFailure(t *testing.T) {
 	err = service.Delete(t.Context(), coords)
 	if !errors.Is(err, ErrDatabaseUnavailable) {
 		t.Fatalf("expected error %v, got %v", ErrDatabaseUnavailable, err)
+	}
+}
+
+func TestService_Get_Success(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		14,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.MarkAvailable(); err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		getArtifact: a,
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := service.Get(t.Context(), coords)
+
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if got.Status() != artifact.StatusAvailable {
+		t.Errorf("expected %v, got %s", artifact.StatusAvailable, got.Status())
+	}
+}
+
+func TestService_Get_PendingArtifact(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		14,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		getArtifact: a,
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := service.Get(t.Context(), coords)
+
+	if !errors.Is(err, ErrArtifactNotAvailable) {
+		t.Fatalf("expected %v, got %v", ErrArtifactNotAvailable, err)
+	}
+
+	if got.ID() != uuid.Nil {
+		t.Error("expected zero-value artifact")
+	}
+}
+
+func TestService_Get_DeletedArtifact(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		14,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.MarkAvailable(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		getArtifact: a,
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := service.Get(t.Context(), coords)
+
+	if !errors.Is(err, ErrArtifactNotAvailable) {
+		t.Fatalf("expected %v, got %v", ErrArtifactNotAvailable, err)
+	}
+
+	if got.ID() != uuid.Nil {
+		t.Error("expected zero-value artifact")
+	}
+}
+
+func TestService_Get_RepositoryFailure(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		getErr: ErrDatabaseUnavailable,
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.Get(t.Context(), coords)
+
+	if !errors.Is(err, ErrDatabaseUnavailable) {
+		t.Fatalf("expected %v, got %v", ErrDatabaseUnavailable, err)
+	}
+}
+
+func TestService_List_FiltersUnavailableArtifacts(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a1, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		14,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a1.MarkAvailable(); err != nil {
+		t.Fatal(err)
+	}
+
+	a2, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		1024,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	a3, err := artifact.NewArtifact(
+		coords,
+		artifact.Digest{},
+		1422,
+		"application/zip",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a3.MarkAvailable(); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a3.Delete(); err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		listArtifacts: []artifact.Artifact{a1, a2, a3},
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	artifacts, err := service.List(t.Context(), coords)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(artifacts) != 1 {
+		t.Fatalf("exptected available artifacts to be %d, got %d", 1, len(artifacts))
+	}
+
+	if artifacts[0].ID() != a1.ID() {
+		t.Error("expected the available artifact a1")
+	}
+}
+
+func TestService_List_RepositoryFailure(t *testing.T) {
+	coords, err := artifact.NewCoordinates("acme", "api", "1.0.0")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repository := &fakeArtifactRepository{
+		listErr: ErrDatabaseUnavailable,
+	}
+	storage := &fakeBinaryStorage{}
+
+	service, err := NewService(repository, storage)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	artifacts, err := service.List(t.Context(), coords)
+	if !errors.Is(err, ErrDatabaseUnavailable) {
+		t.Fatalf("expected error %v, got %v", ErrDatabaseUnavailable, err)
+	}
+
+	if artifacts != nil {
+		t.Fatalf("expected artifacts to be nil, got %v", artifacts)
 	}
 }

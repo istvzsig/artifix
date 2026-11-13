@@ -9,4 +9,5 @@ var (
 	ErrBinaryStorageRequired           = errors.New("binary storage is required")
 	ErrBinaryStoragePublishFailed      = errors.New("storage publish failed")
 	ErrBinaryStorageDiscardStageFailed = errors.New("binary storage error failed")
+	ErrArtifactNotAvailable            = errors.New("artifact is not available")
 )

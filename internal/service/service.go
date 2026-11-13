@@ -77,6 +77,42 @@ func (s *Service) Upload(
 	return a, nil
 }
 
+func (s *Service) Get(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) (artifact.Artifact, error) {
+	a, err := s.repository.Get(ctx, coords)
+	if err != nil {
+		return artifact.Artifact{}, err
+	}
+
+	if a.Status() != artifact.StatusAvailable {
+		return artifact.Artifact{}, ErrArtifactNotAvailable
+	}
+
+	return a, nil
+}
+
+func (s *Service) List(
+	ctx context.Context,
+	coords artifact.Coordinates,
+) ([]artifact.Artifact, error) {
+	result := []artifact.Artifact{}
+
+	artifacts, err := s.repository.List(ctx, coords.Namespace(), coords.Name())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, a := range artifacts {
+		if a.Status() == artifact.StatusAvailable {
+			result = append(result, a)
+		}
+	}
+
+	return result, nil
+}
+
 func (s *Service) Delete(
 	ctx context.Context,
 	coords artifact.Coordinates,
